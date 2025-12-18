@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manhattan Neighborhoods Quiz</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Code+Pro:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg-dark: #0a0c10;
+        --bg-card: #12151c;
+        --accent-gold: #d4a853;
+        --accent-copper: #c17f59;
+        --text-primary: #f4f1ea;
+        --text-muted: #8a8679;
+        --highlight: #e63946;
+        --correct: #2d6a4f;
+        --wrong: #d62828;
+        --border: #2a2d35;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Playfair Display", Georgia, serif;
+        background: var(--bg-dark);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Decorative background */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+            ellipse at 20% 20%,
+            rgba(212, 168, 83, 0.05) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 80% 80%,
+            rgba(193, 127, 89, 0.05) 0%,
+            transparent 50%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .container {
+        width: 100%;
+        padding: 2rem 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Header */
+      header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: linear-gradient(
+          135deg,
+          var(--accent-gold) 0%,
+          var(--accent-copper) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+      }
+
+      .subtitle {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        font-weight: 400;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      /* Main layout */
+      .game-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: start;
+        justify-content: center;
+      }
+
+      @media (max-width: 500px) {
+        .game-layout {
+          flex-direction: column;
+        }
+      }
+
+      /* Map container */
+      .map-container {
+        background: #a8d4e6;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      #map-svg {
+        width: 50vw;
+        max-width: 450px;
+        height: auto;
+        display: block;
+        background: #a8d4e6;
+      }
+
+      /* SVG Styles */
+      .region {
+        cursor: default;
+        transition: fill 0.2s ease, stroke 0.2s ease;
+      }
+
+      .quiz_item {
+        fill: #f4dec6;
+        stroke: #333333;
+        stroke-width: 1;
+      }
+
+      .quiz_item.highlighted {
+        fill: #9b59b6 !important;
+        stroke: #6c3483 !important;
+        stroke-width: 2 !important;
+      }
+
+      .quiz_item.wrong-once {
+        fill: #f4d03f !important;
+        stroke: #d4ac0d !important;
+      }
+
+      .quiz_item.wrong-twice {
+        fill: #e74c3c !important;
+        stroke: #c0392b !important;
+      }
+
+      .quiz_item.correct {
+        fill: #a8d5ba !important;
+        stroke: #2d6a4f !important;
+      }
+
+      .quiz_item.skipped {
+        fill: #f8b4b4 !important;
+        stroke: #d62828 !important;
+      }
+
+      .noquiz_region {
+        fill: #d0d0d0;
+        stroke: #888888;
+        stroke-width: 1;
+      }
+
+      .park {
+        fill: #7da882;
+        stroke: #4a6b4d;
+        stroke-width: 1;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+      }
+
+      .card-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* Stats display */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+
+      .stat {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-family: "Source Code Pro", monospace;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--accent-gold);
+        line-height: 1;
+      }
+
+      .stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        margin-top: 0.3rem;
+      }
+
+      /* Input area */
+      .input-container {
+        position: relative;
+      }
+
+      #answer-input {
+        width: 100%;
+        padding: 1rem 1.2rem;
+        font-family: "Source Code Pro", monospace;
+        font-size: 1.1rem;
+        background: var(--bg-dark);
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        outline: none;
+        transition: all 0.3s ease;
+      }
+
+      #answer-input:focus {
+        border-color: var(--accent-gold);
+        box-shadow: 0 0 20px rgba(212, 168, 83, 0.15);
+      }
+
+      #answer-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      #answer-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Feedback */
+      .feedback {
+        margin-top: 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        min-height: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .feedback.correct {
+        background: rgba(45, 106, 79, 0.15);
+        border: 1px solid var(--correct);
+        color: var(--correct);
+      }
+
+      .feedback.incorrect {
+        background: rgba(214, 40, 40, 0.15);
+        border: 1px solid var(--wrong);
+        color: var(--wrong);
+      }
+
+      .feedback.neutral {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+      }
+
+      /* Progress bar */
+      .progress-container {
+        margin-top: 1rem;
+      }
+
+      .progress-bar {
+        height: 6px;
+        background: var(--bg-dark);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--accent-gold),
+          var(--accent-copper)
+        );
+        width: 0%;
+        transition: width 0.5s ease;
+      }
+
+      .progress-text {
+        font-family: "Source Code Pro", monospace;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-align: right;
+        margin-top: 0.4rem;
+      }
+
+      /* Buttons */
+      .btn {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-family: "Playfair Display", serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--accent-gold) 0%,
+          var(--accent-copper) 100%
+        );
+        color: var(--bg-dark);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(212, 168, 83, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        border: 2px solid var(--border);
+        color: var(--text-primary);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
+      }
+
+      /* Skip button */
+      .skip-btn {
+        margin-top: 0.5rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      /* Start screen overlay */
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(10, 12, 16, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+      }
+
+      .overlay.hidden {
+        display: none;
+      }
+
+      .overlay-content {
+        text-align: center;
+        max-width: 500px;
+        padding: 3rem;
+      }
+
+      .overlay-title {
+        font-size: 3.5rem;
+        font-weight: 900;
+        background: linear-gradient(
+          135deg,
+          var(--accent-gold) 0%,
+          var(--accent-copper) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+      }
+
+      .overlay-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      /* Results */
+      .results-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .result-item {
+        text-align: center;
+        padding: 1.5rem;
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
+      .result-value {
+        font-family: "Source Code Pro", monospace;
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: var(--accent-gold);
+      }
+
+      .result-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-top: 0.5rem;
+      }
+
+      .grade {
+        font-size: 5rem;
+        font-weight: 900;
+        margin: 1rem 0;
+      }
+
+      .grade.a {
+        color: #2d6a4f;
+      }
+      .grade.b {
+        color: var(--accent-gold);
+      }
+      .grade.c {
+        color: var(--accent-copper);
+      }
+      .grade.d {
+        color: #e67e22;
+      }
+      .grade.f {
+        color: var(--wrong);
+      }
+
+      /* Missed list */
+      .missed-title {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
+
+      .missed-list {
+        max-height: 150px;
+        overflow-y: auto;
+        padding: 1rem;
+        background: var(--bg-dark);
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+
+      .missed-list span {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        margin: 0.2rem;
+        background: rgba(214, 40, 40, 0.2);
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: var(--wrong);
+      }
+      /* Neighborhood labels */
+      .neighborhood-label {
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        font-weight: bold;
+        fill: #000;
+        text-anchor: middle;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .neighborhood-label.visible {
+        opacity: 1;
+      }
+
+      .label-bg {
+        fill: rgba(255, 255, 255, 0.75);
+        stroke: none;
+        rx: 3;
+        ry: 3;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .label-bg.visible {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Results Screen -->
+    <div class="overlay hidden" id="results-screen">
+      <div class="overlay-content">
+        <h1 class="overlay-title">Complete!</h1>
+        <div class="grade" id="grade">A</div>
+        <div class="results-stats">
+          <div class="result-item">
+            <div class="result-value" id="final-score">0/40</div>
+            <div class="result-label">Score</div>
+          </div>
+          <div class="result-item">
+            <div class="result-value" id="final-time">0:00</div>
+            <div class="result-label">Time</div>
+          </div>
+        </div>
+        <div id="missed-container" class="hidden">
+          <p class="missed-title">Neighborhoods you missed:</p>
+          <div class="missed-list" id="missed-list"></div>
+        </div>
+        <button class="btn btn-primary" id="restart-btn">Play Again</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <header>
+        <h1>Manhattan Quiz</h1>
+        <p class="subtitle">Name the Highlighted Neighborhood</p>
+      </header>
+
+      <div class="game-layout">
+        <div class="map-container">
+          <svg
+            id="map-svg"
+            viewBox="0 0 450 1120"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g
+              class="content"
+              transform="matrix(1.1882208496836075,0,0,1.1859993913338236,-0.11293251429769591,-0.109739647095358)"
+            >
+              <!-- Non-quiz regions (other boroughs, parks) -->
+              <path
+                id="BRONX"
+                class="region noquiz_region"
+                d="m375.4.6-4.28 15.37-13.43 5.2-36.56-.5-8.14-2.03-8.05-6.23-4.93-1.45-5.63-.48-18.6 8.23-7.56 1.16-3.1-7.17-6.4.49L231.18.59z"
+                fill="#b0b0b0"
+                stroke-width="1"
+                stroke="#555555"
+              ></path>
+              <path
+                id="BROOKLYN"
+                class="region noquiz_region"
+                d="m382.08 506.96-18.42 5.62-11.43 9.69-4.85 11.63-2.32 13.76-1.07 14.43 3.59 11.73-7.54 5 1.05 1.4 8.13-5.05 6.69 6.4 6 5.81 8.53 11.24 6.4 19.96 5.24-2.15zm-14.74 292.62-12.2 2.9-8.53 5.63.97 2.32-4.07 2.91-1.36-1.16-13.18 8.91.39 5.43-2.52-1.75-5.62 3.69v4.65l-9.88 2.13-.78 7.94-5.04 1.75-4.07-2.72-8.33 7.17-1.36 6.2 3.1 1.94-2.9 1.17 1.93 3.1-6.97.58-2.71 16.66 8.33-.19 1.35 9.88-12 1.94.18 6.6 12.99-.78.58 7.36-12.98.39.38 5.81 11.05-.2 1.36-4.06 2.32 6-2.32 2.72 2.52 2.32.77 12.02-14.34.58.2 6.78 12.59-.38.39 6.58-12.02 1.17.2 5.84h96.32V811.2l-4.47-5.82-8.72-2.13z"
+                fill="#b0b0b0"
+                stroke-width="1"
+                stroke="#555555"
+              ></path>
+              <path
+                id="QUEENS"
+                class="region noquiz_region"
+                d="M382.08 502.7 365.8 506l-13.18 8.33-8.33 9.88-6 11.04-7.18 2.72-5.62-.2-2.32-7.75 1.94-3.87.19-3.88-2.71-.97-.97-2.13 2.13-1.94-1.36-4.65h-3.1l-1.16-9.88 2.32-5.62 1.75-12.21-3.49-.2-.77-3.1 1.16-2.13-2.71-.77-.78-3.3 1.36-20.54 14.14-.2 9.11-2.51-.77-2.71-10.27 2.32-9.21.1.2-6.4 3.48-1.74 1.07-4.26-4.17-7.66 4.56-37.01 3.48-96.9 5.24-17.63 3.48-.2 7.37-16.85 4.65-5.04.2-5.43-2.72-.39-2.71-8.52-15.12 1.74-5.62-4.26-4.65-9.7-.39-19.37 1.36-7.95 7.56-5.8 11.43-3.11 4.07.97 2.52 2.9 7.56.78 3.68-3.1 6.78-18.41 7.17-8.91 11.64-48.64z"
+                fill="#b0b0b0"
+                stroke-width="1"
+                stroke="#555555"
+              ></path>
+              <path
+                id="NEW_JERSEY"
+                class="region noquiz_region"
+                d="M.6 699.2v247.2l28.77-10.29-5.07-4.24-3.56 1.37-3.43-10.28 5.2-1.5 2.34 1.64 2.74 6.85 1.37-3.02 2.47-.68 2.32 8.9 9.6-3.97 7.94-5.75.69-3.84 2.74-2.33 8.5-2.47-1.24-2.46-15.48 5.34-1.1-2.33 9.18-2.74 7.95-4.11 1.37 2.47 5.9-2.06-.42-4.52L65 895.42l6.3-2.47-.55-1.64-6.58 2.19-7.12-21.1 12.88-4.94-1.1-2.74-15.2 5.62-5.21-12.74 16.99-6.58-1.37-3.42-15.62 5.75-3.3-2.33 4.94-2.47-5.48-11.5-15.62 5.75-5.35-13.7 23.03-9.6-2.2-5.75L18 824.03l-1.1-2.6 11.92-4.94-.96-1.92-13.15 4.66-1.1-1.92 11.78-5.88 8.78-6.18.68-2.88-2.47-.82-4.1-5.75 3.83-3.7-8.63 3.01-3.02-6.85-3.7-5.2 7.4-2.47-9.86-1.78 10.41-4.12 13.02 1.51.55-2.05-8.09-2.2-2.05-3.97-15.21 5.75-7.4-16.16 7.26-3.3-.82-3.97 17.54-6.71-.69-1.92-10.55 4.25-.55-1.37 2.88-1.92-.55-11.65-9.73 1.37-.68-2.74 13.15-4.66-1.92-5.48L6.9 722.5zm76.35 231.1-22.77 6.68-3.3-2.81-5.23 1.16 1.84 4.65-25.1 9.43h61.83l-1.07-3.42 2.42-.97-2.8-6.88-2.14 1.07z"
+                fill="#b0b0b0"
+                stroke-width="1"
+                stroke="#555555"
+              ></path>
+              <path
+                id="CENTRAL_PARK"
+                class="region park noquiz_region"
+                d="M123.75 397.33h57.55V195.25l.45-76.38-58.2-.26z"
+                fill="#90a994"
+                stroke-width="1"
+                stroke="#335137"
+              ></path>
+              <path
+                id="MORNINGSIDE_PARK"
+                class="region park noquiz_region"
+                d="M114.05 118.6h-9.59l-6.71-29.19.13-20.14-1.64-12.47-1.92-3.56.08-6.03 10.75.16-.14 38.75 8.98 15.9z"
+                fill="#90a994"
+                stroke-width="1"
+                stroke="#335137"
+              ></path>
+
+              <!-- Quiz regions -->
+              <path
+                id="THE_BATTERY"
+                class="region quiz_item"
+                d="m188.87 903.78-16.3 9.45 7.4 6.85 6.44 3.84 12.88 5.34 8.5-.13-.7-3.43 2.34-.96-6.44-4.66 1.78-2.6-7.54-3.98-3.84-9.31z"
+              ></path>
+              <path
+                id="BATTERY_PARK_CITY"
+                class="region quiz_item"
+                d="m172.56 913.23-3.27 1.46-7.36-6.59-2.52-8.72 2.9-.2-.58-6.58h-4.26l-9.88-28.87 6-3.5-3.3-9.68-6.58 1.74-13.95-35.07 20.15-6.4 4.46 6.4 15.5 51.74 9.88 39.92z"
+              ></path>
+              <path
+                id="FINANCIAL_DISTRICT"
+                class="region quiz_item"
+                d="m155.92 821.87 41.66 1.35-.58 19.38 14.34-16.47 43.8 13.37-5.82 14.34 2.8 1.14-1.14 3.01 7.28 2.98-1.57 4.5-6.15-2.4-2.85 1.2-.88 1.78 7.17 2.9-.64 1.43-10.02-3.94-1.17 2.9 10.04 4.14-.73 1.87-10.08-3.87-6.77 16.45 10.12 3.72-.58 1.63-10.52-3.78-6.66 17.42 6.21 3.21 2.42-4.47 1.77.76-2.5 4.57 2 1.15-.92 1.58-9.69-4.84-6.78 6.78 2.52 3.3-7.56 7.75-3.2 1.64-1.81-3.6-6.44-4.67 1.78-2.6-7.54-3.98-3.84-9.31-4.52-.41-9.12 5.1-9.88-39.92z"
+              ></path>
+              <path
+                id="TRIBECA"
+                class="region quiz_item"
+                d="m197.58 823.22 2.53-50.72-67.01-18.09-4.52 1.51 11.5 31.66-5.96 2.4.77 2.24-10.27 3.68.78 1.94 15.3-5.23 1.46 4.16-18.12 6.3.97 2.42 18.9-6.49 4.35 12.3 1.65-.48 4.46 6.4 1.55 4.65z"
+              ></path>
+              <path
+                id="CIVIC_CENTER"
+                class="region quiz_item"
+                d="m237.4 834.17 3.4-31.78-14.73-.97-3.2-5.13-2.03-.39-.39-10.47-16.08-.96-.49 4.94 1.07.1-.49 5.61-5.42-.48-1.46 28.58-.58 19.38 14.34-16.47z"
+              ></path>
+              <path
+                id="TWO_BRIDGES"
+                class="region quiz_item"
+                d="m255.14 839.5 4.26-8.33 27.03-22.67-16.37-21.22-22 14.92-6.58-6.69-3.2 6.78 2.52.1-3.4 31.78z"
+              ></path>
+              <path
+                id="CHINATOWN"
+                class="region quiz_item"
+                d="m200.1 772.5 23.58 5.9 6.98-.83-1.78-18.22 21.24-1.37 1.1 8.63 23.7-2.88 1.1 9.32 4.93 6.3-10.89 7.93-22 14.92-6.58-6.69-3.2 6.78-12.21-.87-3.2-5.13-2.03-.39-.39-10.47-16.08-.96-.49 4.94 1.07.1-.49 5.61-5.42-.48z"
+              ></path>
+              <path
+                id="LITTLE_ITALY"
+                class="region quiz_item"
+                d="m239.05 758.7-1.55-8.15-35.46.2-1.93 21.75 23.57 5.9 6.98-.83-1.78-18.22z"
+              ></path>
+              <path
+                id="SOHO"
+                class="region quiz_item"
+                d="m163.28 716.93 3.1-.97 37.89 2.52 8.53-1.55-.97 12.5 2.13 10.76-.87 10.56h-11.05l-1.93 21.75-27.14-7.22z"
+              ></path>
+              <path
+                id="NOLITA"
+                class="region quiz_item"
+                d="m212.8 716.93 16.76-1.36 7.94 34.98-24.41.2.87-10.56-2.13-10.76z"
+              ></path>
+              <path
+                id="LOWER_EAST_SIDE"
+                class="region quiz_item"
+                d="m229.56 715.57 84.3-10.07 9.98-.2 20.05-6 3.8 12.09 6.85 43.44-2.6 9.18-15.35 11.92 1.33 2.04-32.99 24.54-3.97-4.8-14.53 10.79-16.37-21.22 10.9-7.93-4.94-6.3-1.1-9.32-23.7 2.88-1.1-8.63-11.07.71-1.55-8.14z"
+              ></path>
+              <path
+                id="EAST_VILLAGE"
+                class="region quiz_item"
+                d="m229.56 715.57-12.21-48.15-11.24-27.13 61.43-.2.2 70.93z"
+              ></path>
+              <path
+                id="NOHO"
+                class="region quiz_item"
+                d="m204.27 718.48 2.69-41.62 11.92-3.7 10.68 42.41-16.76 1.36z"
+              ></path>
+              <path
+                id="GREENWICH_VILLAGE"
+                class="region quiz_item"
+                d="m150.5 721.53-2.74-6.03-6.16-58.51.27-16.31 64.24-.4 11.24 27.14 1.53 5.74-11.92 3.7-2.7 41.62-37.88-2.52-3.1.97z"
+              ></path>
+              <path
+                id="WEST_VILLAGE"
+                class="region quiz_item"
+                d="m115.51 725.17-8.45-17.62-16.3 7.81-1-2.34 15.8-7.66-2.2-4.11-6.02 2.6-1.1-2.29 6.3-2.64-12.47-26.17-3.29 1.5-.95-1.78 3.42-1.71-2.47-5.14-6.3 2.88-1.85-3.36-3.84 1.78-1.64-2.94 4.45-2-1.46-2.86-5.87 2.8-.73-1.26 16.83-8.2.69 3.7.82 7 17.68-10.28v-12.34l36.31.14-.27 16.3 6.16 58.52 2.74 6.03-31.5 11.39z"
+              ></path>
+              <path
+                id="CHELSEA"
+                class="region quiz_item"
+                d="m80.34 640.38-1.4-2.76-1.93.75-.95-1.82-13.35 5.38-1.47-3.47 13.52-5.38-.83-1.8 2.83-1.46-1.94-6.49-5.04 1.84-.97-2.13-12.11 4.55-1.26-3.39 11.83-4.6-1.66-4.21-11.65 4.48-1.03-2.76 11.71-4.59-1.76-4.01-11.54 3.93-1.3-2.75 11.78-4.1-1.6-4.33-11.77 4.4-1.13-2.69 6.18-4.06-2.42-6.78 1.65-.97-.4-3.1-10.36.1-.87-2.33 10.37-.1-1.84-8.33-10.63-.13-.13-1.32 10.47.1-.4-1.36-10.14-.25v-1.26l10 .15-4.12-16.18.78-9.69-5.38-.24.15-1.5 5.13.1v-12.8l115.5.3-.08 42.96.14 32.61-.28 31.79h-18.77l-36.31-.14z"
+              ></path>
+              <path
+                id="FLATIRON_DISTRICT"
+                class="region quiz_item"
+                d="m160.92 608.89-.14-32.61 52.14-.07-.07 16.65v5.34l-10.82.14v10.28z"
+              ></path>
+              <path
+                id="GRAMERCY"
+                class="region quiz_item"
+                d="m253.41 593.27-40.56-.41v5.34l-10.82.14v10.28l-41.11.27-.28 31.79 45.47-.4 47.44-.15z"
+              ></path>
+              <path
+                id="STUYVESANT_TOWN"
+                class="region quiz_item"
+                d="m253.41 593.27.14 46.86 14-.04 57.93 1.17-8.08-16.75-7.26-5.62-9.59-2.46-20.28-23.44z"
+              ></path>
+              <path
+                id="KIPS_BAY"
+                class="region quiz_item"
+                d="m212.92 576.2.07-42.4 51.84-.39 3.58 11.34 4.85 10.46-1.07.68 15.12 27.23-2.13 1.45-9.7.1 2.33 5.23 8.03-.24.58 2.08-4.68.14-1.47 1.11-26.86.28-40.56-.41z"
+              ></path>
+              <path
+                id="MURRAY_HILL"
+                class="region quiz_item"
+                d="m266.47 490.97-.48 22.2-1.65.28.49 19.96-51.84.4-21.03-.4.4-42.82z"
+              ></path>
+              <path
+                id="TURTLE_BAY"
+                class="region quiz_item"
+                d="m266.47 490.97 4.56-59.2-17.63-.48-60.86-.1-.19 59.4z"
+              ></path>
+              <path
+                id="MIDTOWN"
+                class="region quiz_item"
+                d="m123.75 397.33-.29 28.14 37.88.2v32.07h12.12l.1-10.56 7.84.1v15.98l-20.06-.29-.29 38.56-.2 37.5 20.55.4.2 10.46-20.64.1-.18 26.29 52.14-.07.07-42.4-21.03-.4.39-42.82.2-59.4 60.84.1v-33.34l-72.08-.62z"
+              ></path>
+              <path
+                id="HELLS_KITCHEN"
+                class="region quiz_item"
+                d="m45.36 533.03 1.17-5.62-2.52.1-.1-3.01-13.28-.2-.1-6 13.09-.1v-4.17l-3.1-2.51-.1-7.56 4.55-2.52-.1-4.36-14.04-.2-.1-2.42 14.34.2v-7.17H31.02v-2.52l14.05.1-.2-4.75-14.04.1-.49-3.3 20.35-.1 1.36-7.27-2.04-.1.1 2.43-17.93-.1v-5.42l19.19.1-.2-6.89-22.09-.19.1-4.46 21.51-.1.1-7.07-21.42-.1v-2.7l21.22.09.1-8.14-20.54.1.1-3.2h15.7l-.1-4.94-15.7.2-.1-4.27 15.5.2.2-9.89h-3.88v-1.94h3.78l.1-3.68-13.66-.1-.2-2.52 13.76.1v-3.88l-11.62-.19-.1-1.45h11.53l.1-3 78.19-1.31-.3 28.14.1 75.58-.1 32.07z"
+              ></path>
+              <path
+                id="UPPER_EAST_SIDE"
+                class="region quiz_item"
+                d="M181.3 195.25h42.8v133.89h61.24l-5.08 42-6.03 26.82h-20.84l-72.09-.63z"
+              ></path>
+              <path
+                id="YORKVILLE"
+                class="region quiz_item"
+                d="M224.1 195.25v133.89h61.24l1.63-31.83 6.54-42.27.2-13.76-1.07-3.68.67-3.69-4.07-5.33-3.2-.67-6-7.37-2.13-5.9-3.88.57-10.37-11.62-2.61-8.34z"
+              ></path>
+              <path
+                id="UPPER_WEST_SIDE"
+                class="region quiz_item"
+                d="m123.75 397.33-78.2 1.3-3.78-.76-2.6.82-8.02-.07.07-2.13 13.43.21.2-15.28 1.51-2.4-2.12-1.78.07-17.26 2.19-1.92-.07-17.13-12.4 6.58-.28-.96 11.45-6.51-1.85-18.64-.48-22.47-1.24.07-.13-15.76.96-1.37-1.26-47.57v-36.82l-.49-79.26 82.85.39z"
+              ></path>
+              <path
+                id="MORNINGSIDE_HEIGHTS"
+                class="region quiz_item"
+                d="m104.46 118.6-6.71-29.19.13-20.14-1.64-12.47-1.92-3.56h-7.47l-.07-17h-18.7l-.24-16.75-10.27-5.24H41.1L38.87 37.9l1.45 50 1.17 2.51-1.07 2.91.3 24.9z"
+              ></path>
+              <path
+                id="EAST_HARLEM"
+                class="region quiz_item"
+                d="m261.05 195.25.29-6.1 8.91-19.57 2.14-16.67-2.62-16.47 5.62.2-.01-1.82-6-.22.2-15.7 7.36-22.29 8.33-17.82-.48-9.6-7.08-16.18L266.1 35.1l-12.6-12.3-15.11-9.5-18.51-8.82-4.03-3.88h-34.07l.6 41.76 9.69.1.2 21.8h-10.28l-.68 131z"
+              ></path>
+              <path
+                id="HARLEM"
+                class="region quiz_item"
+                d="M181.77.6H41.55l-1.97 3.79 2.05 1.16-.53 8.7h16.47l10.27 5.24.24 16.76h18.7l.07 16.99h7.47l.08-6.03 10.75.16-.14 38.75 8.98 15.9.06 16.58h9.5l58.2.27.23-54.62h10.27l-.19-21.8-9.69-.1z"
+              ></path>
+              <path
+                id="HUDSON_SQUARE"
+                class="region quiz_item"
+                d="m172.97 765.28-9.69-48.35L119 732.92l-3.49-7.75-16.27 6.59 5.4 13.1-3.1 1.26.9 1.91 19.57-7.55 6.57 15.44 4.52-1.5z"
+              ></path>
+              <path
+                id="ALPHABET_CITY"
+                class="region quiz_item"
+                d="m267.73 711.02-.19-70.93 57.94 1.17 1.17 7.36 12.6 33.14-.59 5.23 2.52 2.71 2.71 9.6-20.05 6-9.98.2z"
+              ></path>
+              <path
+                id="MEATPACKING_DISTRICT"
+                class="region quiz_item"
+                d="m80.34 640.38 6.03 12.08.69 3.7.82 7 17.68-10.28v-12.34z"
+              ></path>
+              <path
+                id="GARMENT_DISTRICT"
+                class="region quiz_item"
+                d="m160.86 533.32.2-31.78-37.5-.49-.1 32.07z"
+              ></path>
+              <path
+                id="KOREA_TOWN"
+                class="region quiz_item"
+                d="m160.86 539.03 20.54.4.2 10.46-20.64.1z"
+              ></path>
+              <path
+                id="DIAMOND_DISTRICT"
+                class="region quiz_item"
+                d="M161.34 457.74v5.23l20.06.3v-16l-7.85-.1-.1 10.57z"
+              ></path>
+              <path
+                id="THEATER_DISTRICT"
+                class="region quiz_item"
+                d="m123.46 425.47.1 75.58 37.5.49.28-75.87z"
+              ></path>
+              <path
+                id="SUTTON_PLACE"
+                class="region quiz_item"
+                d="m271.03 431.77 2.8-14.82.4-19h-20.84v33.34z"
+              ></path>
+              <path
+                id="ROOSEVELT_ISLAND"
+                class="region quiz_item"
+                d="m291.23 463.5 1.92.14 4.93-16.58-.54-3.7 4.52-11.65 6.57-38.64-.13-15.62 1.5-3.84 3.7-25.76-.13-9.04 2.88-30.42-.28-9.6 2.88-18.08 2.47-3.98-.96-12.33-2.74-5.62-2.33-1.64-1.1-6.17h-1.37l-.69 5.62-3.7 3.42-2.6 5.9-3.29 17.67.82 8.5-1.37 5.2-1.37 35.36-1.6.88-2.3 37.56h-1.23l-4.5 58.66h-1.07l.2 7.94 1.44 5.23-1.26 11.34 1.55 3.3-1.25 1.64z"
+              ></path>
+              <path
+                id="RANDALLS_ISLAND"
+                class="region quiz_item"
+                d="m340.56 165.33 5.35-1.37 2.87-3.7 3.7-10.28 5.21-4.8 3.56-11.37-3.01-16.85 3.15-33.44-1.37-1.23 3.01-8.77 3.7-1.37.55-6.44-.4-3.3 1.91-5.2.82-15.62-2.6-5.07-13.98-10.14-10.55-3.43-23.16-.4-7.26-2.06-9.69-7.04-4.83-.91-3.02.27-13.43 7.54-.27 11.92 1.78 1.24.14 7.4 4.52 12.33 4.38 2.74L297 62l1.92 13.29.4 10.69 3.57 4.38 3.97.82 2.4-1.02-.41 7.53 1.3.2 2.54-2.25 2.67-.76v-3.15l-3.08-3.01 3.08-.07 3.08 5.75-8.9 5.14-11.04 1.03-4.45 6.24-2.8 12.74-1.65 35.7 2.88 9.18 4.17 4.04 6.86 1.64 19.39-5.82 6.37-.55z"
+              ></path>
+            </g>
+          </svg>
+        </div>
+
+        <div class="sidebar">
+          <div class="card">
+            <h3 class="card-title">Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat">
+                <div class="stat-value" id="score">0</div>
+                <div class="stat-label">Correct</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value" id="remaining">40</div>
+                <div class="stat-label">Remaining</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value" id="timer">0:00</div>
+                <div class="stat-label">Time</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Your Answer</h3>
+            <div class="input-container">
+              <input
+                type="text"
+                id="answer-input"
+                placeholder="Type neighborhood name..."
+                autocomplete="off"
+              />
+            </div>
+            <div class="feedback neutral" id="feedback">
+              Which neighborhood is this?
+            </div>
+            <button class="btn btn-secondary skip-btn" id="skip-btn">
+              Skip (reveal answer)
+            </button>
+            <button class="btn btn-secondary skip-btn" id="show-labels-btn">
+              Show All Labels
+            </button>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Progress</h3>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+              <div class="progress-text" id="progress-text">
+                0 / 40 completed
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Neighborhood data - maps SVG IDs to display names and accepted answers
+      const neighborhoods = {
+        THE_BATTERY: {
+          name: "The Battery",
+          answers: ["the battery", "battery", "battery park"],
+        },
+        BATTERY_PARK_CITY: {
+          name: "Battery Park City",
+          answers: ["battery park city", "bpc"],
+        },
+        FINANCIAL_DISTRICT: {
+          name: "Financial District",
+          answers: ["financial district", "fidi", "financial", "wall street"],
+        },
+        TRIBECA: {
+          name: "Tribeca",
+          answers: ["tribeca", "tri-beca", "triangle below canal"],
+        },
+        CIVIC_CENTER: {
+          name: "Civic Center",
+          answers: ["civic center", "civic"],
+        },
+        TWO_BRIDGES: {
+          name: "Two Bridges",
+          answers: ["two bridges", "2 bridges"],
+        },
+        CHINATOWN: {
+          name: "Chinatown",
+          answers: ["chinatown", "china town"],
+        },
+        LITTLE_ITALY: {
+          name: "Little Italy",
+          answers: ["little italy"],
+        },
+        SOHO: {
+          name: "SoHo",
+          answers: ["soho", "so-ho", "south of houston"],
+        },
+        NOLITA: {
+          name: "NoLita",
+          answers: ["nolita", "no-lita", "north of little italy"],
+        },
+        LOWER_EAST_SIDE: {
+          name: "Lower East Side",
+          answers: ["lower east side", "les", "lower east"],
+        },
+        EAST_VILLAGE: {
+          name: "East Village",
+          answers: ["east village", "ev"],
+        },
+        NOHO: {
+          name: "NoHo",
+          answers: ["noho", "no-ho", "north of houston"],
+        },
+        GREENWICH_VILLAGE: {
+          name: "Greenwich Village",
+          answers: [
+            "greenwich village",
+            "the village",
+            "greenwich",
+            "west village greenwich",
+          ],
+        },
+        WEST_VILLAGE: {
+          name: "West Village",
+          answers: ["west village"],
+        },
+        CHELSEA: {
+          name: "Chelsea",
+          answers: ["chelsea"],
+        },
+        FLATIRON_DISTRICT: {
+          name: "Flatiron District",
+          answers: ["flatiron", "flatiron district", "flat iron"],
+        },
+        GRAMERCY: {
+          name: "Gramercy",
+          answers: ["gramercy", "gramercy park"],
+        },
+        STUYVESANT_TOWN: {
+          name: "Stuyvesant Town",
+          answers: [
+            "stuyvesant town",
+            "stuy town",
+            "stuyvesant",
+            "peter cooper village",
+          ],
+        },
+        KIPS_BAY: {
+          name: "Kips Bay",
+          answers: ["kips bay", "kips"],
+        },
+        MURRAY_HILL: {
+          name: "Murray Hill",
+          answers: ["murray hill", "murray"],
+        },
+        TURTLE_BAY: {
+          name: "Turtle Bay",
+          answers: ["turtle bay"],
+        },
+        MIDTOWN: {
+          name: "Midtown",
+          answers: ["midtown", "midtown manhattan"],
+        },
+        HELLS_KITCHEN: {
+          name: "Hell's Kitchen",
+          answers: ["hells kitchen", "hell's kitchen", "clinton", "hk"],
+        },
+        UPPER_EAST_SIDE: {
+          name: "Upper East Side",
+          answers: ["upper east side", "ues", "upper east"],
+        },
+        YORKVILLE: {
+          name: "Yorkville",
+          answers: ["yorkville"],
+        },
+        UPPER_WEST_SIDE: {
+          name: "Upper West Side",
+          answers: ["upper west side", "uws", "upper west"],
+        },
+        MORNINGSIDE_HEIGHTS: {
+          name: "Morningside Heights",
+          answers: ["morningside heights", "morningside"],
+        },
+        EAST_HARLEM: {
+          name: "East Harlem",
+          answers: ["east harlem", "el barrio", "spanish harlem"],
+        },
+        HARLEM: {
+          name: "Harlem",
+          answers: ["harlem"],
+        },
+        HUDSON_SQUARE: {
+          name: "Hudson Square",
+          answers: ["hudson square"],
+        },
+        ALPHABET_CITY: {
+          name: "Alphabet City",
+          answers: ["alphabet city", "alphabet"],
+        },
+        MEATPACKING_DISTRICT: {
+          name: "Meatpacking District",
+          answers: ["meatpacking district", "meatpacking", "meat packing"],
+        },
+        GARMENT_DISTRICT: {
+          name: "Garment District",
+          answers: ["garment district", "garment"],
+        },
+        KOREA_TOWN: {
+          name: "Koreatown",
+          answers: ["koreatown", "korea town", "ktown", "k-town"],
+        },
+        DIAMOND_DISTRICT: {
+          name: "Diamond District",
+          answers: ["diamond district", "diamond"],
+        },
+        THEATER_DISTRICT: {
+          name: "Theater District",
+          answers: ["theater district", "theatre district", "broadway"],
+        },
+        SUTTON_PLACE: {
+          name: "Sutton Place",
+          answers: ["sutton place", "sutton"],
+        },
+        ROOSEVELT_ISLAND: {
+          name: "Roosevelt Island",
+          answers: ["roosevelt island", "roosevelt"],
+        },
+        RANDALLS_ISLAND: {
+          name: "Randall's Island",
+          answers: [
+            "randalls island",
+            "randall's island",
+            "randall island",
+            "randalls",
+          ],
+        },
+      };
+
+      // Game state
+      let allNeighborhoodIds = Object.keys(neighborhoods);
+      let remainingNeighborhoods = [];
+      let currentNeighborhood = null;
+      let score = 0;
+      let totalNeighborhoods = allNeighborhoodIds.length;
+      let startTime;
+      let timerInterval;
+      let missedNeighborhoods = [];
+      let gameActive = false;
+      let wrongAttempts = {}; // Track wrong guesses per neighborhood
+
+      // DOM elements
+      const resultsScreen = document.getElementById("results-screen");
+      const restartBtn = document.getElementById("restart-btn");
+      const showLabelsBtn = document.getElementById("show-labels-btn");
+      const answerInput = document.getElementById("answer-input");
+      const feedback = document.getElementById("feedback");
+      const skipBtn = document.getElementById("skip-btn");
+      const scoreEl = document.getElementById("score");
+      const remainingEl = document.getElementById("remaining");
+      const timerEl = document.getElementById("timer");
+      const progressFill = document.getElementById("progress-fill");
+      const progressText = document.getElementById("progress-text");
+
+      // Initialize display
+      remainingEl.textContent = totalNeighborhoods;
+      progressText.textContent = `0 / ${totalNeighborhoods} completed`;
+
+      // Label positions for each neighborhood (approximate centers)
+      const labelPositions = {
+        THE_BATTERY: { x: 195, y: 920 },
+        BATTERY_PARK_CITY: { x: 148, y: 875 },
+        FINANCIAL_DISTRICT: { x: 210, y: 855 },
+        TRIBECA: { x: 170, y: 795 },
+        CIVIC_CENTER: { x: 225, y: 810 },
+        TWO_BRIDGES: { x: 265, y: 825 },
+        CHINATOWN: { x: 235, y: 775 },
+        LITTLE_ITALY: { x: 220, y: 755 },
+        SOHO: { x: 185, y: 745 },
+        NOLITA: { x: 225, y: 725 },
+        LOWER_EAST_SIDE: { x: 285, y: 765 },
+        EAST_VILLAGE: { x: 245, y: 680 },
+        NOHO: { x: 210, y: 695 },
+        GREENWICH_VILLAGE: { x: 170, y: 675 },
+        WEST_VILLAGE: { x: 115, y: 695 },
+        CHELSEA: { x: 115, y: 590 },
+        FLATIRON_DISTRICT: { x: 185, y: 595 },
+        GRAMERCY: { x: 220, y: 620 },
+        STUYVESANT_TOWN: { x: 280, y: 620 },
+        KIPS_BAY: { x: 255, y: 565 },
+        MURRAY_HILL: { x: 230, y: 515 },
+        TURTLE_BAY: { x: 235, y: 460 },
+        MIDTOWN: { x: 175, y: 470 },
+        HELLS_KITCHEN: { x: 85, y: 480 },
+        UPPER_EAST_SIDE: { x: 205, y: 295 },
+        YORKVILLE: { x: 255, y: 230 },
+        UPPER_WEST_SIDE: { x: 85, y: 295 },
+        MORNINGSIDE_HEIGHTS: { x: 75, y: 85 },
+        EAST_HARLEM: { x: 220, y: 100 },
+        HARLEM: { x: 125, y: 65 },
+        HUDSON_SQUARE: { x: 135, y: 755 },
+        ALPHABET_CITY: { x: 305, y: 680 },
+        MEATPACKING_DISTRICT: { x: 95, y: 655 },
+        GARMENT_DISTRICT: { x: 140, y: 520 },
+        KOREA_TOWN: { x: 175, y: 550 },
+        DIAMOND_DISTRICT: { x: 175, y: 465 },
+        THEATER_DISTRICT: { x: 140, y: 450 },
+        SUTTON_PLACE: { x: 265, y: 420 },
+        ROOSEVELT_ISLAND: { x: 310, y: 390 },
+        RANDALLS_ISLAND: { x: 320, y: 100 },
+      };
+
+      let labelsVisible = false;
+      let labelsCreated = false;
+
+      // Create labels on the SVG
+      function createLabels() {
+        const svg = document.getElementById("map-svg");
+        const contentGroup = svg.querySelector(".content");
+
+        // First pass: create all text elements to measure them
+        const labelElements = [];
+        for (const [id, pos] of Object.entries(labelPositions)) {
+          const name = neighborhoods[id]?.name || id;
+          const text = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          text.setAttribute("x", pos.x);
+          text.setAttribute("y", pos.y);
+          text.setAttribute("class", "neighborhood-label");
+          text.setAttribute("data-neighborhood", id);
+          text.textContent = name;
+          contentGroup.appendChild(text);
+          labelElements.push({ text, pos, id });
+        }
+
+        // Second pass: create background rectangles based on text size
+        const padding = 3;
+        for (const { text, id } of labelElements) {
+          const bbox = text.getBBox();
+          const rect = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "rect"
+          );
+          rect.setAttribute("x", bbox.x - padding);
+          rect.setAttribute("y", bbox.y - padding);
+          rect.setAttribute("width", bbox.width + padding * 2);
+          rect.setAttribute("height", bbox.height + padding * 2);
+          rect.setAttribute("rx", 3);
+          rect.setAttribute("ry", 3);
+          rect.setAttribute("class", "label-bg");
+          rect.setAttribute("data-neighborhood", id);
+          // Insert rect before text so text appears on top
+          contentGroup.insertBefore(rect, text);
+        }
+
+        labelsCreated = true;
+      }
+
+      // Toggle labels visibility
+      function toggleLabels() {
+        if (!labelsCreated) {
+          createLabels();
+        }
+
+        labelsVisible = !labelsVisible;
+        const labels = document.querySelectorAll(".neighborhood-label");
+        const bgs = document.querySelectorAll(".label-bg");
+
+        labels.forEach((label) => {
+          if (labelsVisible) {
+            label.classList.add("visible");
+          } else {
+            label.classList.remove("visible");
+          }
+        });
+
+        bgs.forEach((bg) => {
+          if (labelsVisible) {
+            bg.classList.add("visible");
+          } else {
+            bg.classList.remove("visible");
+          }
+        });
+
+        showLabelsBtn.textContent = labelsVisible
+          ? "Hide Labels"
+          : "Show All Labels";
+      }
+
+      // Normalize answer for comparison
+      function normalizeAnswer(str) {
+        return str
+          .toLowerCase()
+          .replace(/[''`]/g, "'")
+          .replace(/[^a-z0-9\s']/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      // Check if answers match
+      function checkAnswer(userAnswer, neighborhoodId) {
+        const normalizedUser = normalizeAnswer(userAnswer);
+        const acceptedAnswers = neighborhoods[neighborhoodId].answers;
+        return acceptedAnswers.some(
+          (ans) => normalizeAnswer(ans) === normalizedUser
+        );
+      }
+
+      // Highlight a neighborhood
+      function highlightNeighborhood(id) {
+        // Remove previous highlight
+        document.querySelectorAll(".quiz_item.highlighted").forEach((el) => {
+          el.classList.remove("highlighted");
+        });
+
+        // Add new highlight
+        const element = document.getElementById(id);
+        if (element) {
+          element.classList.add("highlighted");
+        }
+      }
+
+      // Mark neighborhood as correct
+      function markCorrect(id) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.classList.remove("highlighted", "wrong-twice");
+          // If they got it on the second try, keep it yellow
+          if (wrongAttempts[id] === 1) {
+            // Already has wrong-once class, leave it yellow
+          } else {
+            element.classList.remove("wrong-once");
+            element.classList.add("correct");
+          }
+        }
+      }
+
+      // Mark neighborhood as skipped
+      function markSkipped(id) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.classList.remove("highlighted", "wrong-once", "wrong-twice");
+          element.classList.add("skipped");
+        }
+      }
+
+      // Mark neighborhood as wrong (yellow for 1, red for 2+)
+      function markWrong(id) {
+        if (!wrongAttempts[id]) {
+          wrongAttempts[id] = 0;
+        }
+        wrongAttempts[id]++;
+
+        const element = document.getElementById(id);
+        if (element) {
+          if (wrongAttempts[id] === 1) {
+            element.classList.remove("wrong-twice");
+            element.classList.add("wrong-once");
+          } else if (wrongAttempts[id] >= 2) {
+            element.classList.remove("wrong-once");
+            element.classList.add("wrong-twice");
+          }
+        }
+      }
+
+      // Get next random neighborhood
+      function getNextNeighborhood() {
+        if (remainingNeighborhoods.length === 0) {
+          endGame();
+          return;
+        }
+
+        const randomIndex = Math.floor(
+          Math.random() * remainingNeighborhoods.length
+        );
+        currentNeighborhood = remainingNeighborhoods[randomIndex];
+        remainingNeighborhoods.splice(randomIndex, 1);
+
+        highlightNeighborhood(currentNeighborhood);
+        answerInput.value = "";
+        answerInput.focus();
+        feedback.textContent = "Which neighborhood is this?";
+        feedback.className = "feedback neutral";
+      }
+
+      // Update timer display
+      function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        timerEl.textContent = `${minutes}:${seconds
+          .toString()
+          .padStart(2, "0")}`;
+      }
+
+      // Format time for display
+      function formatTime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${minutes}:${secs.toString().padStart(2, "0")}`;
+      }
+
+      // Update progress
+      function updateProgress() {
+        const completed = totalNeighborhoods - remainingNeighborhoods.length;
+        const percent = (completed / totalNeighborhoods) * 100;
+        progressFill.style.width = `${percent}%`;
+        progressText.textContent = `${completed} / ${totalNeighborhoods} completed`;
+        remainingEl.textContent = remainingNeighborhoods.length;
+        scoreEl.textContent = score;
+      }
+
+      // Calculate grade
+      function calculateGrade(percentage) {
+        if (percentage >= 97) return { letter: "A+", class: "a" };
+        if (percentage >= 93) return { letter: "A", class: "a" };
+        if (percentage >= 90) return { letter: "A-", class: "a" };
+        if (percentage >= 87) return { letter: "B+", class: "b" };
+        if (percentage >= 83) return { letter: "B", class: "b" };
+        if (percentage >= 80) return { letter: "B-", class: "b" };
+        if (percentage >= 77) return { letter: "C+", class: "c" };
+        if (percentage >= 73) return { letter: "C", class: "c" };
+        if (percentage >= 70) return { letter: "C-", class: "c" };
+        if (percentage >= 67) return { letter: "D+", class: "d" };
+        if (percentage >= 63) return { letter: "D", class: "d" };
+        if (percentage >= 60) return { letter: "D-", class: "d" };
+        return { letter: "F", class: "f" };
+      }
+
+      // Reset map styles
+      function resetMap() {
+        document.querySelectorAll(".quiz_item").forEach((el) => {
+          el.classList.remove(
+            "highlighted",
+            "correct",
+            "skipped",
+            "wrong-once",
+            "wrong-twice"
+          );
+        });
+      }
+
+      // Start game
+      function startGame() {
+        // Reset state
+        score = 0;
+        remainingNeighborhoods = [...allNeighborhoodIds];
+        missedNeighborhoods = [];
+        wrongAttempts = {};
+        gameActive = true;
+
+        // Reset display
+        scoreEl.textContent = "0";
+        resetMap();
+        updateProgress();
+
+        // Enable input
+        answerInput.disabled = false;
+        skipBtn.disabled = false;
+
+        // Start timer
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+
+        // Get first neighborhood
+        getNextNeighborhood();
+      }
+
+      // End game
+      function endGame() {
+        gameActive = false;
+        clearInterval(timerInterval);
+
+        const endTime = Date.now() - startTime;
+        const percentage = (score / totalNeighborhoods) * 100;
+        const grade = calculateGrade(percentage);
+
+        // Update results screen
+        document.getElementById(
+          "final-score"
+        ).textContent = `${score}/${totalNeighborhoods}`;
+        document.getElementById("final-time").textContent = formatTime(endTime);
+        document.getElementById("grade").textContent = grade.letter;
+        document.getElementById("grade").className = `grade ${grade.class}`;
+
+        // Show missed neighborhoods
+        const missedContainer = document.getElementById("missed-container");
+        const missedList = document.getElementById("missed-list");
+
+        if (missedNeighborhoods.length > 0) {
+          missedContainer.classList.remove("hidden");
+          missedList.innerHTML = missedNeighborhoods
+            .map((id) => `<span>${neighborhoods[id].name}</span>`)
+            .join("");
+        } else {
+          missedContainer.classList.add("hidden");
+        }
+
+        // Disable input
+        answerInput.disabled = true;
+        skipBtn.disabled = true;
+
+        // Remove highlight
+        document.querySelectorAll(".quiz_item.highlighted").forEach((el) => {
+          el.classList.remove("highlighted");
+        });
+
+        // Show results screen
+        resultsScreen.classList.remove("hidden");
+      }
+
+      // Handle answer submission
+      function handleAnswer() {
+        if (!gameActive || !currentNeighborhood) return;
+
+        const userAnswer = answerInput.value.trim();
+        if (!userAnswer) return;
+
+        if (checkAnswer(userAnswer, currentNeighborhood)) {
+          // Correct answer
+          score++;
+          feedback.textContent = `✓ Correct! ${neighborhoods[currentNeighborhood].name}`;
+          feedback.className = "feedback correct";
+          markCorrect(currentNeighborhood);
+          updateProgress();
+
+          setTimeout(() => {
+            getNextNeighborhood();
+          }, 800);
+        } else {
+          // Wrong answer
+          markWrong(currentNeighborhood);
+
+          // Check if this is the 2nd wrong attempt
+          if (wrongAttempts[currentNeighborhood] >= 2) {
+            // Reveal the answer and move on
+            missedNeighborhoods.push(currentNeighborhood);
+            feedback.textContent = `✗ It was: ${neighborhoods[currentNeighborhood].name}`;
+            feedback.className = "feedback incorrect";
+            updateProgress();
+
+            setTimeout(() => {
+              getNextNeighborhood();
+            }, 1500);
+          } else {
+            feedback.textContent = "Try again...";
+            feedback.className = "feedback incorrect";
+            answerInput.value = "";
+          }
+        }
+      }
+
+      // Skip current neighborhood
+      function skipNeighborhood() {
+        if (!gameActive || !currentNeighborhood) return;
+
+        missedNeighborhoods.push(currentNeighborhood);
+        feedback.textContent = `Skipped: ${neighborhoods[currentNeighborhood].name}`;
+        feedback.className = "feedback incorrect";
+        markSkipped(currentNeighborhood);
+        updateProgress();
+
+        setTimeout(() => {
+          getNextNeighborhood();
+        }, 1200);
+      }
+
+      // Event listeners
+      restartBtn.addEventListener("click", () => {
+        resultsScreen.classList.add("hidden");
+        startGame();
+      });
+
+      answerInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          handleAnswer();
+        }
+      });
+
+      skipBtn.addEventListener("click", skipNeighborhood);
+      showLabelsBtn.addEventListener("click", toggleLabels);
+
+      // Auto-start the game when page loads
+      startGame();
+    </script>
+  </body>
+</html>
