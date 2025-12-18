@@ -1,6 +1,6 @@
 # Manhattan Neighborhoods Quiz
 
-A beautiful, interactive quiz game to test your knowledge of Manhattan's neighborhoods.
+An interactive quiz game to test your knowledge of Manhattan's neighborhoods.
 
 ## How to Play
 
